@@ -29,6 +29,7 @@ from dbt.adapters.contracts.connection import (
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.adapters.events.logging import AdapterLogger
 from typing import Optional
+from typing_extensions import override
 
 logger = AdapterLogger("starrocks")
 
@@ -233,3 +234,17 @@ class StarRocksConnectionManager(SQLConnectionManager):
             rows_affected=num_rows,
             code=code
         )
+        
+    @override
+    def begin(self):
+        connection = self.get_thread_connection()
+        if connection.transaction_open is True:
+            raise DbtInternalError(
+                'Tried to begin a new transaction on connection "{}", but '
+                "it already had one open!".format(connection.name)
+            )
+
+        # self.add_begin_query()
+
+        connection.transaction_open = True
+        return connection
